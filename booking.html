@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Ticket Booking</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300&family=Permanent+Marker&display=swap"
+        rel="stylesheet">
+</head>
+
+<body style="font-family:comfortaa;">
+    <div class="container align-items-center justify-content-center">
+        <form id="bookingForm">
+            <div class="display-3 text-center">Book your Train</div>
+            <div class="mb-3">
+                <label for="trainName" class="form-label">Train Name</label>
+                <input type="text" class="form-control" id="trainName" required>
+                <div id="trainSuggestionsList" aria-labelledby="trainName"></div>
+            </div>
+            <div class="mb-3">
+                <label for="start" class="form-label">Starting Location</label>
+                <input type="text" class="form-control" id="start" required>
+                <div id="suggestionsList" aria-labelledby="dropdownMenuButton"></div>
+            </div>
+            <div class="mb-3">
+                <label for="departure" class="form-label">Departure Time</label>
+                <input type="time" class="form-control" id="time" placeholder="HH:MM AM/PM" required>
+            </div>
+            <div class="mb-3">
+                <label for="departure" class="form-label">Departure Date</label>
+                <input type="date" class="form-control" id="date" required>
+            </div>
+            <div class="mb-3">
+                <label for="destination" class="form-label">Destination</label>
+                <input type="text" class="form-control" id="destination" required>
+                <div id="destinationSuggestionsList" aria-labelledby="dropdownMenuButton"></div>
+            </div>
+            <div class="mb-3">
+                <label for="seats" class="form-label">Number of Seats</label>
+                <input type="number" class="form-control" id="seats" min="1" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Book Tickets</button>
+            <div class="spinner-border text-primary mt-4 d-none" id="spinner" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div id="price"></div>
+        </form>
+        <button class="btn btn-primary mt-4"
+            onclick="sessionStorage.removeItem('username'); window.location.href='index.html'">Sign Out</button>
+        <div id="failedAlert" class="alert alert-danger d-none mt-4" role="alert">Ticket booking failed. Please try
+            again
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-analytics.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6NdDFC8dH_kq-U3hI_LO1sgHNBFNS2Qk",
+            authDomain: "ticket-booking-b4ca9.firebaseapp.com",
+            projectId: "ticket-booking-b4ca9",
+            storageBucket: "ticket-booking-b4ca9.appspot.com",
+            messagingSenderId: "203727847152",
+            appId: "1:203727847152:web:c53b544f074a6835588c35",
+            measurementId: "G-6KELRP84TR",
+            databaseURL: "https://ticket-booking-b4ca9-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+        sessionStorage.setItem("booking", true);
+        var username = sessionStorage.getItem("username");
+        if (!username) {
+            // Redirect to login page if user is not logged in
+            window.location.href = "index.html";
+        }
+        // Initialize Firebase
+        const firebaseApp = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(firebaseApp);
+        const db = getDatabase(firebaseApp);
+
+        document.getElementById("seats").addEventListener("input", function () {
+            const seats = parseInt(document.getElementById("seats").value);
+            const pricePerSeat = 200; // Adjust this according to your pricing policy
+            const totalPrice = seats * pricePerSeat;
+            document.getElementById("price").textContent = "Total Price: ₹" + totalPrice.toFixed(2); // Display price with two decimal places
+        });
+
+        // Handle form submission
+        document.getElementById("bookingForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+            // Show the spinner
+            document.getElementById("spinner").classList.remove("d-none");
+
+            
+            // Get form values
+            const trainName = document.getElementById("trainName").value;
+            const departure = document.getElementById("time").value;
+            const destination = document.getElementById("destination").value;
+            const seats = parseInt(document.getElementById("seats").value);
+            const start = document.getElementById("start").value;
+            const date = document.getElementById("date").value;
+            // Save booking to Firebase database
+            set(ref(db, "/user/" + sessionStorage.getItem('username') + "/bookings"), {
+                trainName: trainName,
+                time: departure,
+                destination: destination,
+                seats: seats,
+                boarding: start,
+                date: date
+            })
+                .then(() => {
+                    // Booking successful
+                    // Hide the spinner
+                    document.getElementById("spinner").classList.add("d-none");
+                    // Clear form fields
+                    document.getElementById("bookingForm").reset();
+                    window.location.href = 'thankyou.html';
+                })
+                .catch((error) => {
+                    // Booking failed
+                    console.error("Error booking tickets:", error);
+                    alert("Booking failed. Please try again.");
+                    // Hide the spinner
+                    document.getElementById("spinner").classList.add("d-none");
+                    document.getElementById("failedAlert").classList.remove("d-none");
+                });
+        });
+
+        function signOut() {
+            sessionStorage.removeItem("username");
+        }
+        const startingLocations = [
+            "New Delhi",
+            "Mumbai",
+            "Chennai",
+            "Kolkata",
+            "Bengaluru",
+            "Ahmedabad",
+            "Hyderabad",
+            "Pune"
+        ];
+        const destinations = [
+            "New Delhi",
+            "Mumbai",
+            "Chennai",
+            "Kolkata",
+            "Bengaluru",
+            "Ahmedabad",
+            "Hyderabad",
+            "Pune"
+        ];
+
+        const trainNames = [
+            "Rajdhani Express",
+            "Tejas Express",
+            "Duronto Express",
+            "Garib Rath Express",
+            "Jan Shatabdi Express",
+            "Vande Bharat Express",
+            "Chennai Express",
+            "Gujarat Express"
+        ];
+
+        const startInput = document.getElementById("start");
+        const trainNameInput = document.getElementById("trainName");
+        const trainSuggestions = document.getElementById("trainSuggestionsList");
+        const startSuggestions = document.getElementById("suggestionsList");
+        const destinationSuggestions = document.getElementById("destinationSuggestionsList");
+        const destinationInput = document.getElementById("destination");
+
+
+        startInput.addEventListener("input", function () {
+            const userInput = startInput.value.toLowerCase();
+            const suggestions = startingLocations.filter(location => location.toLowerCase().startsWith(userInput));
+            populateDropdown(startSuggestions, suggestions, startInput);
+        });
+
+        destinationInput.addEventListener("input", function () {
+            const userInput = destinationInput.value.toLowerCase();
+            const suggestions = destinations.filter(location => location.toLowerCase().startsWith(userInput));
+            populateDropdown(destinationSuggestions, suggestions, destinationInput);
+        });
+        trainNameInput.addEventListener("input", function () {
+            const userInput = trainNameInput.value.toLowerCase();
+            const suggestions = trainNames.filter(name => name.toLowerCase().startsWith(userInput));
+            populateDropdown(trainSuggestions, suggestions, trainNameInput);
+        });
+
+        function populateDropdown(container, suggestions, inputField) {
+            // Clear previous suggestions
+            container.innerHTML = "";
+
+            // Populate dropdown with suggestions
+            suggestions.forEach(suggestion => {
+                const suggestionElement = document.createElement("button");
+                suggestionElement.className = "dropdown-item";
+                suggestionElement.type = "button";
+                suggestionElement.textContent = suggestion;
+                suggestionElement.addEventListener("click", function () {
+                    inputField.value = suggestion;
+                    container.innerHTML = "";
+                });
+                container.appendChild(suggestionElement);
+            });
+
+            // Show or hide the dropdown based on the number of suggestions
+            if (suggestions.length > 0) {
+                container.parentElement.classList.add("show");
+            } else {
+                container.parentElement.classList.remove("show");
+            }
+        }
+    </script>
+</body>
+
+</html>
